@@ -5,10 +5,29 @@ This is a "queueing proxy" for HTTP POST requests: it gets POST data and passes 
 
 qproxy is implemented as a Java servlet, so it needs a servlet container to run on (e.g. Tomcat, Jetty, GlassFish, JBoss AS, ...).
 
+
+Build / Usage
+-------------
+
+You'll need at least Java SE 7, and additionally Maven 3 for building:
+
+    mvn clean package
+
+A simple way of deploying and running qproxy is using the Jetty plugin:
+
+    mvn jetty:run
+
+Once it's running, send your POST requests to the context root (in the above case, it's /) with the target url added as a request parameter called _uri_. Example using [curl](http://curl.haxx.se/):
+
+    curl -XPOST 'http://localhost:8080/?uri=http://targethost/foo/bar' -d 'post data'
+
+This will return immediately with an HTTP 202 (Accepted) code, and then qproxy will try to pass the request on to http://targethost/foo/bar as specified. This also includes the original request headers.
+
+
 Limitations
 -----------
 
-This initial implementation does not give any delivery guarantees. A best effort is made to deliver messages exactly once, but they may also be lost or (unlikely, but possibly) delivered multiple times.
+This initial implementation does not give any delivery guarantees. A best effort is made to deliver messages exactly once, but they may also be lost or (unlikely, but possibly) delivered multiple times. Ordering is not guaranteed either, although it will tend to be _roughly_ first-in-first out.
 
 POST data are streamed to and from filesystem storage. This is meant to keep memory usage to a minimum even for large payloads, but may not result in the best throughput.
 
