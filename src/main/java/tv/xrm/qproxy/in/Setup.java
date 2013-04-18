@@ -1,14 +1,18 @@
 package tv.xrm.qproxy.in;
 
 
+import com.yammer.metrics.MetricRegistry;
+import com.yammer.metrics.servlets.MetricsServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tv.xrm.qproxy.*;
 import tv.xrm.qproxy.out.DefaultRequestDispatcher;
 import tv.xrm.qproxy.storage.FileStorage;
 
+import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
+import javax.servlet.ServletRegistration;
 import javax.servlet.annotation.WebListener;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -17,14 +21,12 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Initialization of the application
+ * Initialization of the application.
  */
 @WebListener
 public class Setup implements ServletContextListener {
 
     public static final String PATH_PROPERTY = "qproxy.dataDirectory";
-
-    public static final String Q_REGISTRY = "qproxy.queueRegistry";
 
     private static final String DEFAULT_DATA_ROOT = System.getProperty("java.io.tmpdir");
 
@@ -35,18 +37,28 @@ public class Setup implements ServletContextListener {
         final Path basedir = getBasedir();
         final RequestStorage storage = new FileStorage(basedir);
 
-        QueueRegistry qReg = new QueueRegistry(new QueueRegistry.RequestQueueAndDispatcherFactory() {
+        final MetricRegistry metricRegistry = new MetricRegistry("qproxy");
+
+        final QueueRegistry qReg = new QueueRegistry(new QueueRegistry.RequestQueueAndDispatcherFactory() {
             @Override
-            public RequestQueue getQueue() {
-                return new RequestQueue(storage);
+            public RequestQueue getQueue(final String id) {
+                return new RequestQueue(id, storage, metricRegistry);
             }
 
             @Override
             public RequestDispatcher getDispatcher(final RequestQueue queue) {
-                return new DefaultRequestDispatcher(queue);
+                return new DefaultRequestDispatcher(queue, metricRegistry);
             }
         });
-        sce.getServletContext().setAttribute(Q_REGISTRY, qReg);
+
+        final ServletContext sc = sce.getServletContext();
+        sc.setAttribute(MetricsServlet.METRICS_REGISTRY, metricRegistry);
+
+        ServletRegistration proxySr = sc.addServlet("proxy", new ProxyServlet(qReg, metricRegistry));
+        proxySr.addMapping("/");
+
+        ServletRegistration metricsSr = sc.addServlet("metrics", new MetricsServlet());
+        metricsSr.addMapping("/metrics");
 
         cleanupLeftoverRequests(basedir, qReg);
     }

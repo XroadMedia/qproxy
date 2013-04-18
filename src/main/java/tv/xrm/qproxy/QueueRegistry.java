@@ -3,13 +3,14 @@ package tv.xrm.qproxy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Initializes and keeps queues and allows to find a queue for a given Request.
  */
 public class QueueRegistry {
 
-    private final ConcurrentHashMap<String, RequestQueue> map = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, RequestQueue> map = new ConcurrentHashMap<>();
     private final RequestQueueAndDispatcherFactory factory;
 
     public QueueRegistry(RequestQueueAndDispatcherFactory factory) {
@@ -17,7 +18,7 @@ public class QueueRegistry {
     }
 
     public interface RequestQueueAndDispatcherFactory {
-        RequestQueue getQueue();
+        RequestQueue getQueue(String id);
 
         RequestDispatcher getDispatcher(RequestQueue queue);
     }
@@ -32,7 +33,7 @@ public class QueueRegistry {
 
         RequestQueue q = map.get(cutUri);
         if (q == null) {
-            q = factory.getQueue();
+            q = factory.getQueue(cutUri);
             RequestQueue prevQ = map.putIfAbsent(cutUri, q);
             if (prevQ != null) {
                 q = prevQ;

@@ -1,7 +1,7 @@
 package tv.xrm.qproxy.storage;
 
-
-import org.apache.commons.io.IOUtils;
+import com.google.common.io.ByteStreams;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import tv.xrm.qproxy.Request;
@@ -38,8 +38,7 @@ public class FileStorageTest {
         storage = new FileStorage(tempFolder);
     }
 
-
-    // @After
+    @After
     public void teardown() throws IOException {
         Files.walkFileTree(tempFolder, new SimpleFileVisitor<Path>() {
             @Override
@@ -86,7 +85,8 @@ public class FileStorageTest {
     }
 
     private String stringFromChannel(ReadableByteChannel input) throws IOException {
-        return IOUtils.toString(Channels.newInputStream(input), StandardCharsets.UTF_8);
+        byte[] bytes = ByteStreams.toByteArray(Channels.newInputStream(input));
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     private Map<String, Collection<String>> generateHeaders() {
