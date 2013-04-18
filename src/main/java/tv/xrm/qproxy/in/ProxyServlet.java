@@ -83,7 +83,7 @@ public class ProxyServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType("text/plain");
-        resp.getWriter().print("qproxy is up and running. Send POST requests to this path, add target URI as request parameter 'uri'.");
+        resp.getWriter().print("qproxy is up and running. Send POST requests to this path, add target URL as request parameter 'url'.");
     }
 
     private Map<String, Collection<String>> extractHeaders(final HttpServletRequest req) {

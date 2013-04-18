@@ -40,6 +40,4 @@ Short-term Roadmap
 
 Many parameters are currently hardwired, and should be configurable instead.
 
-Undeliverable requests should be deleted after a configurable amount of time.
-
-There is no facility for monitoring, except by parsing the log. The idea is to provide some monitoring data (probably collected using [Metrics](http://metrics.codahale.com) through a servlet.
+Undeliverable requests should be deleted (or archived) after a configurable amount of time.

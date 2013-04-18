@@ -32,6 +32,8 @@ public class Setup implements ServletContextListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(Setup.class);
 
+    private static final long MAX_REQUEST_AGE_MS = 8 * 60 * 60 * 1000;
+
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         final Path basedir = getBasedir();
@@ -80,16 +82,22 @@ public class Setup implements ServletContextListener {
     }
 
     private void cleanupLeftoverRequests(Path basedir, QueueRegistry qReg) {
-        RequestStorage fs = new FileStorage(basedir);
+        final RequestStorage fs = new FileStorage(basedir);
 
-        List<Request> leftovers = fs.retrieve();
-        for (Request req : leftovers) {
-            LOG.info("processing leftover request {}", req);
-            RequestQueue q = qReg.getQueue(req.getUri());
-            try {
-                q.enqueue(req);
-            } catch (IOException e) {
-                LOG.warn("unable to enqueue leftover request {}; skipping", req, e);
+        final List<Request> leftovers = fs.retrieve();
+        for (final Request req : leftovers) {
+            final long ageMillis = System.currentTimeMillis() - req.getReceivedTimestamp();
+
+            if (ageMillis <= MAX_REQUEST_AGE_MS) {
+                LOG.info("processing leftover request {}", req);
+                RequestQueue q = qReg.getQueue(req.getUri());
+                try {
+                    q.enqueue(req);
+                } catch (IOException e) {
+                    LOG.warn("unable to enqueue leftover request {}; skipping", req, e);
+                }
+            } else {
+                LOG.info("skipping leftover request {} because it's too old", req);
             }
         }
     }
