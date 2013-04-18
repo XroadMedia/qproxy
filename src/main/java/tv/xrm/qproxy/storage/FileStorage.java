@@ -1,5 +1,7 @@
 package tv.xrm.qproxy.storage;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tv.xrm.qproxy.Request;
@@ -10,14 +12,13 @@ import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 
-public final class FileStorage implements RequestStorage {
+public class FileStorage implements RequestStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileStorage.class);
     private static final String SUFFIX = ".req";
@@ -39,8 +40,7 @@ public final class FileStorage implements RequestStorage {
         try (ReadableByteChannel inChannel = request.getBodyStream();
              FileChannel targetChannel = FileChannel.open(target, StandardOpenOption.WRITE)) {
 
-            writeUri(request.getUri(), targetChannel);
-            writeHeaders(request.getHeaders(), targetChannel);
+            writeStorageBlock(new StorageBlock(request.getUri(), request.getHeaders(), request.getReceivedTimestamp()), targetChannel);
             targetChannel.transferFrom(inChannel, targetChannel.position(), Integer.MAX_VALUE);
         } catch (IOException | RuntimeException e) {
             Files.delete(target);
@@ -55,12 +55,11 @@ public final class FileStorage implements RequestStorage {
         final Path source = baseDir.resolve(Objects.requireNonNull(id));
 
         FileChannel sourceChannel = FileChannel.open(source, StandardOpenOption.READ);
-        URI uri = readUri(sourceChannel);
-        Map<String, Collection<String>> headers = marshalling.unmarshal(readHeaders(sourceChannel));
+        StorageBlock stb = readStorageBlock(sourceChannel);
 
-        LOG.debug("retrieved {} {}", id, uri);
+        LOG.debug("retrieved {} {}", id, stb.getUri());
 
-        return new Request(uri, headers, sourceChannel, id);
+        return new Request(stb.getUri(), stb.getHeaders(), sourceChannel, id);
     }
 
     @Override
@@ -94,32 +93,19 @@ public final class FileStorage implements RequestStorage {
         }
     }
 
-    private URI readUri(FileChannel sourceChannel) throws IOException {
+    private void writeStorageBlock(StorageBlock stb, FileChannel targetChannel) throws IOException {
+        final byte[] bytes = marshalling.marshal(stb);
+        writeLength(targetChannel, bytes.length);
+        targetChannel.write(ByteBuffer.wrap(bytes));
+    }
+
+    private StorageBlock readStorageBlock(FileChannel sourceChannel) throws IOException {
         int length = readLength(sourceChannel);
-        ByteBuffer uriBuffer = ByteBuffer.allocate(length);
-        sourceChannel.read(uriBuffer);
-        uriBuffer.flip();
-        return URI.create(new String(uriBuffer.array(), StandardCharsets.US_ASCII));
-    }
+        ByteBuffer buffer = ByteBuffer.allocate(length);
+        sourceChannel.read(buffer);
+        buffer.flip();
 
-    private void writeUri(URI uri, FileChannel targetChannel) throws IOException {
-        final byte[] uriBytes = uri.toASCIIString().getBytes(StandardCharsets.US_ASCII);
-        writeLength(targetChannel, uriBytes.length);
-        targetChannel.write(ByteBuffer.wrap(uriBytes));
-    }
-
-    private void writeHeaders(Map<String, Collection<String>> headers, FileChannel targetChannel) throws IOException {
-        final byte[] headerBytes = marshalling.marshal(headers);
-        writeLength(targetChannel, headerBytes.length);
-        targetChannel.write(ByteBuffer.wrap(headerBytes));
-    }
-
-    private byte[] readHeaders(FileChannel sourceChannel) throws IOException {
-        int length = readLength(sourceChannel);
-        ByteBuffer headersBuffer = ByteBuffer.allocate(length);
-        sourceChannel.read(headersBuffer);
-        headersBuffer.flip();
-        return headersBuffer.array();
+        return marshalling.unmarshal(buffer.array());
     }
 
     private void writeLength(FileChannel targetChannel, final int length) throws IOException {
@@ -140,5 +126,32 @@ public final class FileStorage implements RequestStorage {
         return "FileStorage{" +
                 "baseDir=" + baseDir +
                 '}';
+    }
+
+    static final class StorageBlock {
+        private final URI uri;
+        private final Map<String, Collection<String>> headers;
+        private final long receivedTimestamp;
+
+        @JsonCreator
+        public StorageBlock(@JsonProperty("uri") URI uri,
+                            @JsonProperty("headers") Map<String, Collection<String>> headers,
+                            @JsonProperty("receivedTimestamp") long receivedTimestamp) {
+            this.uri = uri;
+            this.headers = headers;
+            this.receivedTimestamp = receivedTimestamp;
+        }
+
+        public URI getUri() {
+            return uri;
+        }
+
+        public Map<String, Collection<String>> getHeaders() {
+            return headers;
+        }
+
+        public long getReceivedTimestamp() {
+            return receivedTimestamp;
+        }
     }
 }

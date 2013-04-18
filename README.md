@@ -31,4 +31,15 @@ This initial implementation does not give any delivery guarantees. A best effort
 
 POST data are streamed to and from filesystem storage. This is meant to keep memory usage to a minimum even for large payloads, but may not result in the best throughput.
 
+The internal message queue has a fixed size. This is inflexible but provides some form of back-pressure to the client.
+
 Each target URL is considered a logical queue, which is processed by a fixed number of concurrent HTTP client threads.
+
+Short-term Roadmap
+------------------
+
+Many parameters are currently hardwired, and should be configurable instead.
+
+Undeliverable requests should be deleted after a configurable amount of time.
+
+There is no facility for monitoring, except by parsing the log. The idea is to provide some monitoring data (probably collected using [Metrics](http://metrics.codahale.com) through a servlet.

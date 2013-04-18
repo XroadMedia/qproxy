@@ -9,10 +9,10 @@ import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public final class RequestQueue {
+public class RequestQueue {
     private static final int CAPACITY = 1024;
 
-    private static final int ENQUEUING_TIMEOUT_S = 10;
+    private static final int ENQUEUING_TIMEOUT_S = 3;
 
     private static final int MAX_RETRIES = 4;
     private static final int RETRY_DELAY_BASE_S = 3;

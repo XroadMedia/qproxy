@@ -54,7 +54,7 @@ public class ProxyServlet extends HttpServlet {
             resp.setHeader("X-XRM-Stored-As", idRequest.getId());
         } catch (IOException | RuntimeException e) {
             LOG.warn("failed to process request", e);
-            resp.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+            resp.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, e.getMessage());
         }
     }
 

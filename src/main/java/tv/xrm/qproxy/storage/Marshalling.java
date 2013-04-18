@@ -3,27 +3,32 @@ package tv.xrm.qproxy.storage;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.ObjectWriter;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Map;
 
 final class Marshalling {
-    private static final TypeReference<Map<String, Collection<String>>> MAP_LIST_REFERENCE = new TypeReference<Map<String, Collection<String>>>() {
+    private static final TypeReference<FileStorage.StorageBlock> TYPE_REFERENCE = new TypeReference<FileStorage.StorageBlock>() {
     };
 
-    private final ObjectMapper mapper = new ObjectMapper();
-    private final ObjectReader reader = mapper.reader(MAP_LIST_REFERENCE);
+    private final ObjectWriter writer;
+    private final ObjectReader reader;
 
-    public byte[] marshal(final Object o) {
+    public Marshalling() {
+        ObjectMapper mapper = new ObjectMapper();
+        writer = mapper.writer();
+        reader = mapper.reader(TYPE_REFERENCE);
+    }
+
+    public byte[] marshal(final FileStorage.StorageBlock o) {
         try {
-            return mapper.writeValueAsBytes(o);
+            return writer.writeValueAsBytes(o);
         } catch (final IOException e) {
             throw new IllegalStateException("JSON mapping failed", e);
         }
     }
 
-    public Map<String, Collection<String>> unmarshal(final byte[] jsonBytes) {
+    public FileStorage.StorageBlock unmarshal(final byte[] jsonBytes) {
         try {
             return reader.readValue(jsonBytes);
         } catch (IOException e) {
