@@ -45,11 +45,8 @@ public class ProxyServlet extends HttpServlet {
         try {
             final URI uri;
             try {
-                final String uriParam = req.getParameter("uri");
-                if (Strings.isNullOrEmpty(uriParam)) {
-                    throw new URISyntaxException("uri", "must not be null or empty");
-                }
-                uri = new URI(uriParam);
+                final String uriParam = req.getParameter("url");
+                uri = checkAsURI(uriParam);
             } catch (URISyntaxException e) {
                 resp.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
                 return;
@@ -68,6 +65,19 @@ public class ProxyServlet extends HttpServlet {
         } finally {
             timerContext.stop();
         }
+    }
+
+    static URI checkAsURI(final String uriParam) throws URISyntaxException {
+        if (Strings.isNullOrEmpty(uriParam)) {
+            throw new URISyntaxException("url", "must not be null or empty");
+        }
+        final URI uri = new URI(uriParam);
+
+        if (!uri.isAbsolute() || uri.isOpaque()) {
+            throw new URISyntaxException("url", "must be absolute and hierarchical");
+        }
+
+        return uri;
     }
 
     @Override

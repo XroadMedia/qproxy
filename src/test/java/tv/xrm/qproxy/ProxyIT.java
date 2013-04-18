@@ -31,7 +31,7 @@ public class ProxyIT {
         final String body = "\"El veloz murciélago hindú comía feliz cardillo y kiwi. La cigüeña tocaba el saxofón detrás del palenque de paja.\"";
 
         Response response = client.preparePost(PROXY_SERVER_BASE_URL)
-                .addQueryParameter("uri", MOCK_SERVER_BASE_URL + "boo")
+                .addQueryParameter("url", MOCK_SERVER_BASE_URL + "boo")
                 .setBody(body)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Foo-Header", "foo")
@@ -66,7 +66,7 @@ public class ProxyIT {
                 .willReturn(aResponse().withStatus(208)));
 
         Response response = client.preparePost(PROXY_SERVER_BASE_URL)
-                .addQueryParameter("uri", MOCK_SERVER_BASE_URL)
+                .addQueryParameter("url", MOCK_SERVER_BASE_URL)
                 .setBody(body)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Foo-Header", "foo")
@@ -86,7 +86,7 @@ public class ProxyIT {
         final String body = "\"El veloz murciélago hindú comía feliz cardillo y kiwi.\"";
 
         Response response = client.preparePost(PROXY_SERVER_BASE_URL)
-                .addQueryParameter("uri", MOCK_SERVER_BASE_URL.replace('/', '\\'))
+                .addQueryParameter("url", MOCK_SERVER_BASE_URL.replace('/', '\\'))
                 .setBody(body)
                 .execute().get();
 
