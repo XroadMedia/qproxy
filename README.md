@@ -19,7 +19,7 @@ A simple way of deploying and running qproxy is using the Jetty plugin:
 
 Once it's running, send your POST requests to the context root (in the above case, it's /) with the target url added as a request parameter called _uri_. Example using [curl](http://curl.haxx.se/):
 
-    curl -XPOST 'http://localhost:8080/?uri=http://targethost/foo/bar' -d 'post data'
+    curl -XPOST 'http://localhost:8080/?url=http://targethost/foo/bar' -d 'post data'
 
 This will return immediately with an HTTP 202 (Accepted) code, and then qproxy will try to pass the request on to http://targethost/foo/bar as specified. This also includes the original request headers.
 
