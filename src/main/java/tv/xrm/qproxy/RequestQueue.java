@@ -16,8 +16,6 @@ import static com.yammer.metrics.MetricRegistry.name;
 public class RequestQueue {
     private static final int CAPACITY = 1024;
     private static final int ENQUEUING_TIMEOUT_S = 3;
-    private static final int MAX_RETRIES = 4;
-    private static final int RETRY_DELAY_BASE_S = 3;
 
     private static final Logger LOG = LoggerFactory.getLogger(RequestQueue.class);
 
@@ -78,20 +76,18 @@ public class RequestQueue {
         }
     }
 
-    public void requeue(final Request req) {
-        final int retries = req.getRetryCount() + 1;
-
-        if (retries <= MAX_RETRIES) {
-            final long delay = 1000L * (long) Math.pow(RETRY_DELAY_BASE_S, retries);
-            LOG.debug("scheduling retry for {} in {} ms", req, delay);
+    public void requeue(final Request req, final long delayMillis) {
+        if (delayMillis > 0) {
+            LOG.trace("scheduling retry for {} in >={} ms", req, delayMillis);
             delayTimer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    addToQueue(req.getId(), retries);
+                    addToQueue(req.getId(), req.getRetryCount());
                 }
-            }, delay);
+            }, delayMillis);
         } else {
-            LOG.warn("giving up retries for {}, maximum of {} attempts reached", req, MAX_RETRIES);
+            LOG.trace("scheduling retry for {} without delay", req, delayMillis);
+            addToQueue(req.getId(), req.getRetryCount());
         }
     }
 

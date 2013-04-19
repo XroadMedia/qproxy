@@ -26,13 +26,14 @@ import java.util.List;
 @WebListener
 public class Setup implements ServletContextListener {
 
+    /**
+     * Name of a system property to define the data directory.
+     */
     public static final String PATH_PROPERTY = "qproxy.dataDirectory";
 
     private static final String DEFAULT_DATA_ROOT = System.getProperty("java.io.tmpdir");
 
     private static final Logger LOG = LoggerFactory.getLogger(Setup.class);
-
-    private static final long MAX_REQUEST_AGE_MS = 8 * 60 * 60 * 1000;
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
@@ -40,6 +41,8 @@ public class Setup implements ServletContextListener {
         final RequestStorage storage = new FileStorage(basedir);
 
         final MetricRegistry metricRegistry = new MetricRegistry("qproxy");
+
+        final LifecyclePolicy lifecyclePolicy = new DefaultLifecyclePolicy();
 
         final QueueRegistry qReg = new QueueRegistry(new QueueRegistry.RequestQueueAndDispatcherFactory() {
             @Override
@@ -49,7 +52,7 @@ public class Setup implements ServletContextListener {
 
             @Override
             public RequestDispatcher getDispatcher(final RequestQueue queue) {
-                return new DefaultRequestDispatcher(queue, metricRegistry);
+                return new DefaultRequestDispatcher(queue, metricRegistry, lifecyclePolicy);
             }
         });
 
@@ -62,7 +65,7 @@ public class Setup implements ServletContextListener {
         ServletRegistration metricsSr = sc.addServlet("metrics", new MetricsServlet());
         metricsSr.addMapping("/metrics");
 
-        cleanupLeftoverRequests(basedir, qReg);
+        cleanupLeftoverRequests(basedir, qReg, lifecyclePolicy);
     }
 
     private Path getBasedir() {
@@ -81,14 +84,13 @@ public class Setup implements ServletContextListener {
         }
     }
 
-    private void cleanupLeftoverRequests(Path basedir, QueueRegistry qReg) {
+    private void cleanupLeftoverRequests(Path basedir, QueueRegistry qReg, LifecyclePolicy lifecyclePolicy) {
         final RequestStorage fs = new FileStorage(basedir);
 
         final List<Request> leftovers = fs.retrieve();
         for (final Request req : leftovers) {
-            final long ageMillis = System.currentTimeMillis() - req.getReceivedTimestamp();
 
-            if (ageMillis <= MAX_REQUEST_AGE_MS) {
+            if (!lifecyclePolicy.shouldForget(req)) {
                 LOG.info("processing leftover request {}", req);
                 RequestQueue q = qReg.getQueue(req.getUri());
                 try {
@@ -97,7 +99,8 @@ public class Setup implements ServletContextListener {
                     LOG.warn("unable to enqueue leftover request {}; skipping", req, e);
                 }
             } else {
-                LOG.info("skipping leftover request {} because it's too old", req);
+                LOG.info("skipping and deleting leftover request {}", req);
+                fs.delete(req.getId());
             }
         }
     }

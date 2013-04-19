@@ -6,10 +6,10 @@ import com.ning.http.client.generators.InputStreamBodyGenerator;
 import com.yammer.metrics.MetricRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tv.xrm.qproxy.LifecyclePolicy;
 import tv.xrm.qproxy.RequestDispatcher;
 import tv.xrm.qproxy.RequestQueue;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.channels.Channels;
 import java.nio.channels.SeekableByteChannel;
@@ -28,14 +28,17 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
 
     private static final int NUM_THREADS = 3;
 
+    private final AsyncHttpClient client = new AsyncHttpClient();
+
     private final com.yammer.metrics.Timer requestTimer;
 
     private final RequestQueue q;
 
-    private final AsyncHttpClient client = new AsyncHttpClient();
+    private final LifecyclePolicy lifecyclePolicy;
 
-    public DefaultRequestDispatcher(final RequestQueue queue, final MetricRegistry metricRegistry) {
+    public DefaultRequestDispatcher(final RequestQueue queue, final MetricRegistry metricRegistry, final LifecyclePolicy lifecyclePolicy) {
         this.q = Objects.requireNonNull(queue);
+        this.lifecyclePolicy = lifecyclePolicy;
 
         requestTimer = metricRegistry.timer(name(DefaultRequestDispatcher.class, queue.getQueueId(), "outgoing-requests"));
     }
@@ -71,7 +74,13 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
                         q.cleanup(req.getId());
                     } catch (IOException e) {
                         LOG.warn("exception trying to dispatch " + req, e);
-                        q.requeue(req);
+
+                        long retry = lifecyclePolicy.shouldRetryIn(req);
+                        if (retry >= 0) {
+                            q.requeue(tv.xrm.qproxy.Request.withRetries(req, req.getRetryCount() + 1), retry);
+                        } else {
+                            LOG.warn("giving up on request {}", req);
+                        }
                     }
                 }
             } catch (InterruptedException ignored) {
@@ -101,14 +110,15 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
                     Response result = client.executeRequest(httpRequest).get();
                     final int status = result.getStatusCode();
 
-                    if (status >= HttpServletResponse.SC_OK && status < HttpServletResponse.SC_MULTIPLE_CHOICES) {
+                    if (lifecyclePolicy.isSuccessfullyDelivered(status)) {
                         LOG.info("req: {} response: {} {}", req, status, result.getStatusText());
                     } else {
                         LOG.warn("req: {} response: {} {}", req, status, result.getStatusText());
-                    }
-
-                    if (result.getStatusCode() == HttpServletResponse.SC_SERVICE_UNAVAILABLE) {
-                        throw new IOException("service unavailable, retry later");
+                        if (lifecyclePolicy.shouldRetryOnStatus(status)) {
+                            throw new IOException("service unavailable, retry later");
+                        } else {
+                            LOG.warn("giving up on request {}", req);
+                        }
                     }
                 } catch (ExecutionException e) {
                     throw new IOException(e);
