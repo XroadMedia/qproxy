@@ -54,6 +54,12 @@
             </plugin>
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.4.1</version>
+            </plugin>
+
+            <plugin>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-maven-plugin</artifactId>
                 <version>9.0.2.v20130417</version>
@@ -117,5 +123,11 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <scm>
+        <connection>scm:git:git@github.com:XroadMedia/qproxy.git</connection>
+        <url>scm:git:git@github.com:XroadMedia/qproxy.git</url>
+        <developerConnection>scm:git:git@github.com:XroadMedia/qproxy.git</developerConnection>
+    </scm>
 
 </project>

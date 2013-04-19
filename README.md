@@ -23,6 +23,10 @@ Once it's running, send your POST requests to the context root (in the above cas
 
 This will return immediately with an HTTP 202 (Accepted) code, and then qproxy will try to pass the request on to http://targethost/foo/bar as specified. This also includes the original request headers.
 
+Runtime metrics can be found at /metrics:
+
+    curl -XGET 'http://localhost:8080/metrics'
+
 
 Limitations
 -----------
