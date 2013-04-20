@@ -59,7 +59,7 @@ public class FileStorage implements RequestStorage {
 
         LOG.debug("retrieved {} {}", id, stb.getUri());
 
-        return new Request(stb.getUri(), stb.getHeaders(), sourceChannel, id);
+        return new Request(stb.getUri(), stb.getHeaders(), sourceChannel, id, 0, stb.getReceivedTimestamp());
     }
 
     @Override

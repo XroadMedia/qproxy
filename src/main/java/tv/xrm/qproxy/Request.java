@@ -4,6 +4,7 @@ import java.net.URI;
 import java.nio.channels.ReadableByteChannel;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * A request to be proxied.
@@ -26,20 +27,16 @@ public final class Request {
         this.receivedTimestamp = receivedTimestamp;
     }
 
-    public Request(URI uri, Map<String, Collection<String>> headers, ReadableByteChannel bodyStream, String id) {
-        this(uri, headers, bodyStream, id, 0, System.currentTimeMillis());
-    }
-
-    public Request(URI uri, Map<String, Collection<String>> headers, ReadableByteChannel bodyStream) {
-        this(uri, headers, bodyStream, null);
-    }
-
-    public Request(Request req, String id) {
-        this(req.getUri(), req.getHeaders(), req.getBodyStream(), id);
+    public static Request withId(final Request original, final String id) {
+        return new Request(original.getUri(), original.getHeaders(), original.getBodyStream(),
+                id,
+                original.getRetryCount(), original.getReceivedTimestamp());
     }
 
     public static Request withRetries(final Request original, final int retryCount) {
-        return new Request(original.getUri(), original.getHeaders(), original.getBodyStream(), original.getId(), retryCount, original.getReceivedTimestamp());
+        return new Request(original.getUri(), original.getHeaders(), original.getBodyStream(), original.getId(),
+                retryCount,
+                original.getReceivedTimestamp());
     }
 
     public URI getUri() {
@@ -73,5 +70,28 @@ public final class Request {
                 ", id='" + id + '\'' +
                 ", retryCount=" + retryCount +
                 '}';
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o instanceof Request) {
+            Request other = (Request) o;
+            return Objects.equals(uri, other.uri) &&
+                    Objects.equals(headers, other.headers) &&
+                    Objects.equals(bodyStream, other.bodyStream) &&
+                    Objects.equals(id, other.id) &&
+                    Objects.equals(receivedTimestamp, other.receivedTimestamp) &&
+                    Objects.equals(retryCount, other.retryCount);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(uri, headers, bodyStream, id, receivedTimestamp, retryCount);
     }
 }

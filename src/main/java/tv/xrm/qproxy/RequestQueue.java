@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 import static com.yammer.metrics.MetricRegistry.name;
 
 public class RequestQueue {
-    private static final int CAPACITY = 1024;
+    public static final int CAPACITY = 1024;
     private static final int ENQUEUING_TIMEOUT_S = 3;
 
     private static final Logger LOG = LoggerFactory.getLogger(RequestQueue.class);
@@ -48,10 +48,14 @@ public class RequestQueue {
         });
     }
 
-    public Request enqueue(final Request req) throws IOException {
-        String id = storage.store(req);
-        addToQueue(id, req.getRetryCount());
-        return new Request(req, id);
+    public Request enqueue(final Request req) {
+        try {
+            String id = storage.store(req);
+            addToQueue(id, req.getRetryCount());
+            return Request.withId(req, id);
+        } catch (IOException e) {
+            throw new RequestQueueException("unable to enqueue request " + req, e);
+        }
     }
 
     private void addToQueue(String id, int retries) {

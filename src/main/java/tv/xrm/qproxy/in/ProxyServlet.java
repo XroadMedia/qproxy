@@ -55,7 +55,8 @@ public class ProxyServlet extends HttpServlet {
             try (InputStream is = req.getInputStream()) {
                 RequestQueue queue = queueRegistry.getQueue(uri);
                 Map<String, Collection<String>> headers = extractHeaders(req);
-                Request idRequest = queue.enqueue(new Request(uri, headers, Channels.newChannel(is)));
+                Request idRequest = queue.enqueue(
+                        new Request(uri, headers, Channels.newChannel(is), null, 0, System.currentTimeMillis()));
                 resp.setStatus(HttpServletResponse.SC_ACCEPTED);
                 resp.setHeader("X-XRM-Stored-As", idRequest.getId());
             } catch (IOException | RuntimeException e) {

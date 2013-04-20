@@ -95,7 +95,7 @@ public class Setup implements ServletContextListener {
                 RequestQueue q = qReg.getQueue(req.getUri());
                 try {
                     q.enqueue(req);
-                } catch (IOException e) {
+                } catch (RequestQueue.RequestQueueException e) {
                     LOG.warn("unable to enqueue leftover request {}; skipping", req, e);
                 }
             } else {
