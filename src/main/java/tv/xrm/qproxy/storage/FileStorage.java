@@ -20,8 +20,19 @@ import java.util.*;
 
 public class FileStorage implements RequestStorage {
 
+    /**
+     * File suffix used for request storage.
+     */
+    static final String SUFFIX = ".req";
+
+    /**
+     * Maximum serialized size of storage block (i.e. request metadata, not including body). This is a sanity check
+     * to detect file corruption.
+     */
+    static final int MAX_STORAGE_BLOCK_SIZE = 128 * 1024;
+
     private static final Logger LOG = LoggerFactory.getLogger(FileStorage.class);
-    private static final String SUFFIX = ".req";
+
     private static final int SIZEOF_INT = 4;
 
     private final Marshalling marshalling = new Marshalling();
@@ -94,18 +105,29 @@ public class FileStorage implements RequestStorage {
     }
 
     private void writeStorageBlock(StorageBlock stb, FileChannel targetChannel) throws IOException {
-        final byte[] bytes = marshalling.marshal(stb);
-        writeLength(targetChannel, bytes.length);
-        targetChannel.write(ByteBuffer.wrap(bytes));
+        try {
+            final byte[] bytes = marshalling.marshal(stb);
+            writeLength(targetChannel, bytes.length);
+            targetChannel.write(ByteBuffer.wrap(bytes));
+        } catch (RuntimeException e) {
+            throw new IOException("failed writing storage block " + stb, e);
+        }
     }
 
     private StorageBlock readStorageBlock(FileChannel sourceChannel) throws IOException {
-        int length = readLength(sourceChannel);
-        ByteBuffer buffer = ByteBuffer.allocate(length);
-        sourceChannel.read(buffer);
-        buffer.flip();
+        try {
+            int length = readLength(sourceChannel);
+            if (length > MAX_STORAGE_BLOCK_SIZE) {
+                throw new IOException("storage block size is greater than " + MAX_STORAGE_BLOCK_SIZE + ", file corrupt?");
+            }
+            ByteBuffer buffer = ByteBuffer.allocate(length);
+            sourceChannel.read(buffer);
+            buffer.flip();
 
-        return marshalling.unmarshal(buffer.array());
+            return marshalling.unmarshal(buffer.array());
+        } catch (RuntimeException e) {
+            throw new IOException("failed reading storage block", e);
+        }
     }
 
     private void writeLength(FileChannel targetChannel, final int length) throws IOException {

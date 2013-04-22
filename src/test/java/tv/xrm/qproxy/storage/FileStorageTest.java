@@ -15,10 +15,10 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 public class FileStorageTest {
 
@@ -74,6 +74,22 @@ public class FileStorageTest {
     @Test(expected = IOException.class)
     public void failsProperlyOnNonexistentId() throws IOException {
         storage.retrieve("nonexistent");
+    }
+
+    @Test
+    public void skipsCorruptedRequestFiles() throws IOException {
+        Files.createFile(tempFolder.resolve("corruptedFile1" + FileStorage.SUFFIX));
+
+        Path corrupted2 = Files.createFile(tempFolder.resolve("corruptedFile2" + FileStorage.SUFFIX));
+        Files.write(corrupted2, "gibberish, this won't work".getBytes());
+
+        Path corrupted3 = Files.createFile(tempFolder.resolve("corruptedFile3" + FileStorage.SUFFIX));
+        Files.write(corrupted3, new byte[]{0, 0, 0, 127, 1, 2, 3, 4, 5, 6, 7});
+
+        List<Request> reqs = storage.retrieve();
+
+        assertNotNull(reqs);
+        assertTrue(reqs.isEmpty());
     }
 
 
