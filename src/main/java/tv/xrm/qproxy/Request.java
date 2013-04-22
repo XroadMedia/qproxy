@@ -1,5 +1,6 @@
 package tv.xrm.qproxy;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.channels.ReadableByteChannel;
 import java.util.Collection;
@@ -96,7 +97,7 @@ public final class Request implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() throws IOException {
         if (bodyStream != null) {
             bodyStream.close();
         }

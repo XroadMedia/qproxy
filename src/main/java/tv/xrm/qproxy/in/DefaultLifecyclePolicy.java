@@ -11,6 +11,7 @@ class DefaultLifecyclePolicy implements LifecyclePolicy {
     private static final int MAX_RETRIES = 4;
     private static final int RETRY_DELAY_BASE_S = 3;
     private static final long MAX_REQUEST_AGE_MS = 8 * 60 * 60 * 1000;
+    private static final int MILLIS = 1000;
 
     @Override
     public boolean isSuccessfullyDelivered(final int httpStatusCode) {
@@ -20,7 +21,7 @@ class DefaultLifecyclePolicy implements LifecyclePolicy {
     @Override
     public long shouldRetryIn(final Request req) {
         if (req.getRetryCount() <= MAX_RETRIES) {
-            return 1000L * (long) Math.pow(RETRY_DELAY_BASE_S, req.getRetryCount());
+            return MILLIS * (long) Math.pow(RETRY_DELAY_BASE_S, req.getRetryCount());
         } else {
             return DO_NOT_RETRY;
         }
@@ -34,6 +35,6 @@ class DefaultLifecyclePolicy implements LifecyclePolicy {
 
     @Override
     public boolean shouldRetryOnStatus(final int httpStatusCode) {
-        return httpStatusCode == 503;
+        return httpStatusCode == HttpServletResponse.SC_SERVICE_UNAVAILABLE;
     }
 }
