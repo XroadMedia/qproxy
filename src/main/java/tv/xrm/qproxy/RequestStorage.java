@@ -21,7 +21,7 @@ public interface RequestStorage {
     List<Request> retrieve();
 
     /**
-     * Delete the request identified by ID, if it exists.
+     * Delete the request identified by id, if it exists. Do not complain if it's null or invalid.
      */
     void delete(String id);
 

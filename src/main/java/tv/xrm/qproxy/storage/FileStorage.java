@@ -12,10 +12,7 @@ import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
+import java.nio.file.*;
 import java.util.*;
 
 public class FileStorage implements RequestStorage {
@@ -96,11 +93,15 @@ public class FileStorage implements RequestStorage {
 
     @Override
     public void delete(final String id) {
-        final Path source = baseDir.resolve(id);
+        if (id == null) {
+            return;
+        }
+
         try {
+            final Path source = baseDir.resolve(id);
             Files.delete(source);
-        } catch (IOException e) {
-            LOG.warn("unable to delete " + id, e);
+        } catch (InvalidPathException | IOException e) {
+            LOG.warn("unable to delete {}", id, e);
         }
     }
 
