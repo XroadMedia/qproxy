@@ -12,6 +12,7 @@ import tv.xrm.qproxy.RequestQueue;
 
 import java.io.IOException;
 import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -92,12 +93,12 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
         private void postRequest(final tv.xrm.qproxy.Request req) throws IOException, InterruptedException {
             final com.yammer.metrics.Timer.Context timerContext = requestTimer.time();
 
-            try {
+            try (ReadableByteChannel ch = req.getBodyStream()) {
                 final BodyGenerator bodyGenerator;
-                if (req.getBodyStream() instanceof SeekableByteChannel) {
-                    bodyGenerator = new StreamingNonchunkingBodyGenerator((SeekableByteChannel) req.getBodyStream());
+                if (ch instanceof SeekableByteChannel) {
+                    bodyGenerator = new StreamingNonchunkingBodyGenerator((SeekableByteChannel) ch);
                 } else {
-                    bodyGenerator = new InputStreamBodyGenerator(Channels.newInputStream(req.getBodyStream()));
+                    bodyGenerator = new InputStreamBodyGenerator(Channels.newInputStream(ch));
                 }
 
                 Request httpRequest = new RequestBuilder("POST")

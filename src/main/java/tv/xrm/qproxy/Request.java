@@ -9,7 +9,7 @@ import java.util.Objects;
 /**
  * A request to be proxied.
  */
-public final class Request {
+public final class Request implements AutoCloseable {
     private final URI uri;
     private final Map<String, Collection<String>> headers;
     private final ReadableByteChannel bodyStream;
@@ -93,5 +93,12 @@ public final class Request {
     @Override
     public int hashCode() {
         return Objects.hash(uri, headers, bodyStream, id, receivedTimestamp, retryCount);
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (bodyStream != null) {
+            bodyStream.close();
+        }
     }
 }

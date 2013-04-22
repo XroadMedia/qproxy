@@ -62,12 +62,20 @@ public class FileStorage implements RequestStorage {
     public Request retrieve(final String id) throws IOException {
         final Path source = baseDir.resolve(Objects.requireNonNull(id));
 
-        FileChannel sourceChannel = FileChannel.open(source, StandardOpenOption.READ);
-        StorageBlock stb = readStorageBlock(sourceChannel);
+        FileChannel sourceChannel = null;
+        try {
+            sourceChannel = FileChannel.open(source, StandardOpenOption.READ);
+            StorageBlock stb = readStorageBlock(sourceChannel);
 
-        LOG.debug("retrieved {} {}", id, stb.getUri());
+            LOG.debug("retrieved {} {}", id, stb.getUri());
 
-        return new Request(stb.getUri(), stb.getHeaders(), sourceChannel, id, 0, stb.getReceivedTimestamp());
+            return new Request(stb.getUri(), stb.getHeaders(), sourceChannel, id, 0, stb.getReceivedTimestamp());
+        } catch (IOException e) {
+            if (sourceChannel != null) {
+                sourceChannel.close();
+            }
+            throw e;
+        }
     }
 
     @Override

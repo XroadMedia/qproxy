@@ -21,14 +21,12 @@ import java.util.Map;
 import static org.junit.Assert.*;
 
 public class FileStorageTest {
-
     private Path tempFolder;
     private RequestStorage storage;
 
-
     @Before
     public void setup() throws IOException {
-        tempFolder = Files.createTempDirectory(FileStorageTest.class.toString());
+        tempFolder = Files.createTempDirectory(FileStorageTest.class.getSimpleName());
         storage = new FileStorage(tempFolder);
     }
 
@@ -43,8 +41,11 @@ public class FileStorageTest {
 
             @Override
             public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
+                if (exc == null) {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+                throw exc;
             }
         });
     }
@@ -64,11 +65,11 @@ public class FileStorageTest {
         final Request r = new Request(uri, headers, TestDataFactory.channelFromString(data), null, 0, System.currentTimeMillis());
         String id = storage.store(r);
 
-        final Request retrievedRequest = storage.retrieve(id);
-
-        assertEquals(id, retrievedRequest.getId());
-        assertEquals(r.getHeaders(), retrievedRequest.getHeaders());
-        assertEquals(data, TestDataFactory.stringFromChannel(retrievedRequest.getBodyStream()));
+        try (final Request retrievedRequest = storage.retrieve(id)) {
+            assertEquals(id, retrievedRequest.getId());
+            assertEquals(r.getHeaders(), retrievedRequest.getHeaders());
+            assertEquals(data, TestDataFactory.stringFromChannel(retrievedRequest.getBodyStream()));
+        }
     }
 
     @Test(expected = IOException.class)
