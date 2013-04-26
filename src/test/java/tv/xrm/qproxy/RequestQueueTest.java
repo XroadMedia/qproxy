@@ -1,6 +1,6 @@
 package tv.xrm.qproxy;
 
-import com.yammer.metrics.MetricRegistry;
+import com.codahale.metrics.MetricRegistry;
 import org.junit.Before;
 import org.junit.Test;
 

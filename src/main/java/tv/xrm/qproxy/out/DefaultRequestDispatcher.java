@@ -3,7 +3,7 @@ package tv.xrm.qproxy.out;
 
 import com.ning.http.client.*;
 import com.ning.http.client.generators.InputStreamBodyGenerator;
-import com.yammer.metrics.MetricRegistry;
+import com.codahale.metrics.MetricRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tv.xrm.qproxy.LifecyclePolicy;
@@ -19,7 +19,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static com.yammer.metrics.MetricRegistry.name;
 
 /**
  * Takes items from a RequestQueue and delivers them.
@@ -31,7 +30,7 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
 
     private final AsyncHttpClient client = new AsyncHttpClient();
 
-    private final com.yammer.metrics.Timer requestTimer;
+    private final com.codahale.metrics.Timer requestTimer;
 
     private final RequestQueue q;
 
@@ -41,7 +40,7 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
         this.q = Objects.requireNonNull(queue);
         this.lifecyclePolicy = lifecyclePolicy;
 
-        requestTimer = metricRegistry.timer(name(DefaultRequestDispatcher.class, queue.getQueueId(), "outgoing-requests"));
+        requestTimer = metricRegistry.timer(MetricRegistry.name(DefaultRequestDispatcher.class, queue.getQueueId(), "outgoing-requests"));
     }
 
     @Override
@@ -91,7 +90,7 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
         }
 
         private void postRequest(final tv.xrm.qproxy.Request req) throws IOException, InterruptedException {
-            final com.yammer.metrics.Timer.Context timerContext = requestTimer.time();
+            final com.codahale.metrics.Timer.Context timerContext = requestTimer.time();
 
             try (ReadableByteChannel ch = req.getBodyStream()) {
                 final BodyGenerator bodyGenerator;

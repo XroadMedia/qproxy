@@ -1,7 +1,7 @@
 package tv.xrm.qproxy;
 
-import com.yammer.metrics.Gauge;
-import com.yammer.metrics.MetricRegistry;
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.MetricRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,7 +11,7 @@ import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static com.yammer.metrics.MetricRegistry.name;
+import static com.codahale.metrics.MetricRegistry.name;
 
 public class RequestQueue {
     public static final int CAPACITY = 2048;

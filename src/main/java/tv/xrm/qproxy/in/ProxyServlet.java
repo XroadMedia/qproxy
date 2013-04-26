@@ -1,7 +1,7 @@
 package tv.xrm.qproxy.in;
 
 import com.google.common.base.Strings;
-import com.yammer.metrics.MetricRegistry;
+import com.codahale.metrics.MetricRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tv.xrm.qproxy.QueueRegistry;
@@ -19,7 +19,7 @@ import java.net.URISyntaxException;
 import java.nio.channels.Channels;
 import java.util.*;
 
-import static com.yammer.metrics.MetricRegistry.name;
+import static com.codahale.metrics.MetricRegistry.name;
 
 /**
  * Main servlet that accepts POST requests and puts them on a queue.
@@ -31,7 +31,7 @@ public class ProxyServlet extends HttpServlet {
 
     private final QueueRegistry queueRegistry;
 
-    private final com.yammer.metrics.Timer requestTimer;
+    private final com.codahale.metrics.Timer requestTimer;
 
     public ProxyServlet(final QueueRegistry queueRegistry, final MetricRegistry metricRegistry) {
         this.queueRegistry = queueRegistry;
@@ -41,7 +41,7 @@ public class ProxyServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        final com.yammer.metrics.Timer.Context timerContext = requestTimer.time();
+        final com.codahale.metrics.Timer.Context timerContext = requestTimer.time();
         try {
             final URI uri;
             try {

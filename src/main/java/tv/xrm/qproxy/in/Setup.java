@@ -1,8 +1,8 @@
 package tv.xrm.qproxy.in;
 
 
-import com.yammer.metrics.MetricRegistry;
-import com.yammer.metrics.servlets.MetricsServlet;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.servlets.MetricsServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tv.xrm.qproxy.*;
@@ -40,7 +40,7 @@ public class Setup implements ServletContextListener {
         final Path basedir = getBasedir();
         final RequestStorage storage = new FileStorage(basedir);
 
-        final MetricRegistry metricRegistry = new MetricRegistry("qproxy");
+        final MetricRegistry metricRegistry = new MetricRegistry();
 
         final LifecyclePolicy lifecyclePolicy = new DefaultLifecyclePolicy();
 
