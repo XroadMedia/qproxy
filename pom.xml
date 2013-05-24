@@ -9,6 +9,7 @@
 
     <description>A queueing HTTP proxy. Accepts POST requests and passes them on, buffering in between (roughly FIFO).
     </description>
+    <url>https://github.com/XroadMedia/qproxy</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -45,7 +46,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.0</version>
+                <version>3.1</version>
                 <configuration>
                     <source>1.7</source>
                     <target>1.7</target>
@@ -64,7 +65,7 @@
             <plugin>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-maven-plugin</artifactId>
-                <version>9.0.2.v20130417</version>
+                <version>9.0.3.v20130506</version>
                 <configuration>
                     <useTestScope>true</useTestScope>
                 </configuration>
@@ -76,12 +77,12 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.2.0</version>
+            <version>2.2.1</version>
         </dependency>
         <dependency>
             <groupId>com.ning</groupId>
             <artifactId>async-http-client</artifactId>
-            <version>1.7.13</version>
+            <version>1.7.16</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -90,7 +91,7 @@
         <dependency>
             <groupId>com.codahale.metrics</groupId>
             <artifactId>metrics-servlets</artifactId>
-            <version>3.0.0-BETA2</version>
+            <version>3.0.0-BETA3</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -120,7 +121,7 @@
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock</artifactId>
-            <version>1.30</version>
+            <version>1.32</version>
             <scope>test</scope>
             <classifier>standalone</classifier>
         </dependency>
