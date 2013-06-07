@@ -111,7 +111,7 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
                     final int status = result.getStatusCode();
 
                     if (lifecyclePolicy.isSuccessfullyDelivered(status)) {
-                        LOG.info("req: {} response: {} {}", req, status, result.getStatusText());
+                        LOG.debug("req: {} response: {} {}", req, status, result.getStatusText());
                     } else {
                         LOG.warn("req: {} response: {} {}", req, status, result.getStatusText());
                         if (lifecyclePolicy.shouldRetryOnStatus(status)) {
