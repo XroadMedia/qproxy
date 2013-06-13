@@ -3,7 +3,7 @@
     <groupId>tv.xrm</groupId>
     <artifactId>qproxy</artifactId>
     <packaging>war</packaging>
-    <version>0.0.4-SNAPSHOT</version>
+    <version>0.0.4</version>
 
     <name>qproxy</name>
 
@@ -137,7 +137,7 @@
         <connection>scm:git:git@github.com:XroadMedia/qproxy.git</connection>
         <url>scm:git:git@github.com:XroadMedia/qproxy.git</url>
         <developerConnection>scm:git:git@github.com:XroadMedia/qproxy.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>qproxy-0.0.4</tag>
     </scm>
 
 </project>
