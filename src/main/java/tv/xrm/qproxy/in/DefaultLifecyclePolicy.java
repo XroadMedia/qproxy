@@ -7,11 +7,17 @@ import tv.xrm.qproxy.Request;
 import javax.servlet.http.HttpServletResponse;
 
 class DefaultLifecyclePolicy implements LifecyclePolicy {
-
-    private static final int MAX_RETRIES = 4;
-    private static final int RETRY_DELAY_BASE_S = 3;
-    private static final long MAX_REQUEST_AGE_MS = 8 * 60 * 60 * 1000;
     private static final int MILLIS = 1000;
+
+    private final int maxRetries;
+    private final int retryDelayBaseSeconds;
+    private final int maxRequestAgeSeconds;
+
+    public DefaultLifecyclePolicy(int maxRetries, int retryDelayBaseSeconds, int maxRequestAgeSeconds) {
+        this.maxRetries = maxRetries;
+        this.retryDelayBaseSeconds = retryDelayBaseSeconds;
+        this.maxRequestAgeSeconds = maxRequestAgeSeconds;
+    }
 
     @Override
     public boolean isSuccessfullyDelivered(final int httpStatusCode) {
@@ -20,8 +26,8 @@ class DefaultLifecyclePolicy implements LifecyclePolicy {
 
     @Override
     public long shouldRetryIn(final Request req) {
-        if (req.getRetryCount() <= MAX_RETRIES) {
-            return MILLIS * (long) Math.pow(RETRY_DELAY_BASE_S, req.getRetryCount());
+        if (req.getRetryCount() <= maxRetries) {
+            return MILLIS * (long) Math.pow(retryDelayBaseSeconds, req.getRetryCount());
         } else {
             return DO_NOT_RETRY;
         }
@@ -30,7 +36,7 @@ class DefaultLifecyclePolicy implements LifecyclePolicy {
     @Override
     public boolean shouldForget(final Request req) {
         final long ageMillis = System.currentTimeMillis() - req.getReceivedTimestamp();
-        return ageMillis > MAX_REQUEST_AGE_MS;
+        return ageMillis > (maxRequestAgeSeconds * MILLIS);
     }
 
     @Override

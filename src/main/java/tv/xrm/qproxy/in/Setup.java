@@ -3,6 +3,8 @@ package tv.xrm.qproxy.in;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.servlets.MetricsServlet;
+import net.e175.klaus.config.Config;
+import net.e175.klaus.config.ConfigValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tv.xrm.qproxy.*;
@@ -20,46 +22,52 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import static net.e175.klaus.config.PropertiesConfigBuilder.defaultFromClassloader;
+
 /**
  * Initialization of the application.
  */
 @WebListener
 public class Setup implements ServletContextListener {
-
-    /**
-     * Name of a system property to define the data directory.
-     */
-    public static final String PATH_PROPERTY = "qproxy.dataDirectory";
-
     private static final String DEFAULT_DATA_ROOT = System.getProperty("java.io.tmpdir");
 
     private static final Logger LOG = LoggerFactory.getLogger(Setup.class);
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        final Path basedir = getBasedir();
+        final Config config = defaultFromClassloader("qproxy.properties")
+                .overrideFromFilesystem(System.getProperty("qproxy.configFile")).load();
+
+        final Path basedir = getBasedir(config);
         final RequestStorage storage = new FileStorage(basedir);
 
         final MetricRegistry metricRegistry = new MetricRegistry();
 
-        final LifecyclePolicy lifecyclePolicy = new DefaultLifecyclePolicy();
+        final LifecyclePolicy lifecyclePolicy = new DefaultLifecyclePolicy(
+                (int) config.key("maxRetries").asLong(),
+                (int) config.key("retryDelayBaseSeconds").asLong(),
+                (int) config.key("maxRequestAgeSeconds").asLong());
+
+        final int queueCapacity = (int) config.key("queueCapacity").asLong();
+        final int posterThreadCount = (int) config.key("posterThreadCount").asLong();
+        final int enqueuingWaitMillis = (int) config.key("enqueuingWaitMillis").asLong();
 
         final QueueRegistry qReg = new QueueRegistry(new QueueRegistry.RequestQueueAndDispatcherFactory() {
             @Override
             public RequestQueue getQueue(final String id) {
-                return new RequestQueue(id, storage, metricRegistry);
+                return new RequestQueue(id, storage, metricRegistry, queueCapacity, enqueuingWaitMillis);
             }
 
             @Override
             public RequestDispatcher getDispatcher(final RequestQueue queue) {
-                return new DefaultRequestDispatcher(queue, metricRegistry, lifecyclePolicy);
+                return new DefaultRequestDispatcher(queue, metricRegistry, lifecyclePolicy, posterThreadCount);
             }
         });
 
         final ServletContext sc = sce.getServletContext();
         sc.setAttribute(MetricsServlet.METRICS_REGISTRY, metricRegistry);
 
-        ServletRegistration proxySr = sc.addServlet("proxy", new ProxyServlet(qReg, metricRegistry));
+        ServletRegistration proxySr = sc.addServlet("proxy", new ProxyServlet(qReg, metricRegistry, config.toString()));
         proxySr.addMapping("/");
 
         ServletRegistration metricsSr = sc.addServlet("metrics", new MetricsServlet());
@@ -68,11 +76,11 @@ public class Setup implements ServletContextListener {
         cleanupLeftoverRequests(basedir, qReg, lifecyclePolicy);
     }
 
-    private Path getBasedir() {
-        final String pathProperty = System.getProperty(PATH_PROPERTY);
+    private Path getBasedir(Config config) {
+        ConfigValue pathProperty = config.key("dataDirectory");
 
-        final Path basedir = pathProperty != null ?
-                FileSystems.getDefault().getPath(pathProperty) :
+        final Path basedir = pathProperty.exists() ?
+                FileSystems.getDefault().getPath(pathProperty.asString()) :
                 FileSystems.getDefault().getPath(DEFAULT_DATA_ROOT).resolve("qproxy-queues");
         try {
             if (!Files.exists(basedir)) {

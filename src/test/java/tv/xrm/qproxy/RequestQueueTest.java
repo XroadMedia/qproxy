@@ -12,12 +12,13 @@ import static org.mockito.Mockito.mock;
 public class RequestQueueTest {
 
     private RequestQueue q;
+    private static final int CAPACITY = 1024;
 
     @Before
     public void setup() {
         MetricRegistry metricRegistryMock = mock(MetricRegistry.class);
         RequestStorage requestStorage = new InMemoryStorage();
-        q = new RequestQueue("test", requestStorage, metricRegistryMock);
+        q = new RequestQueue("test", requestStorage, metricRegistryMock, CAPACITY, 300);
     }
 
     @Test
@@ -52,7 +53,7 @@ public class RequestQueueTest {
 
     @Test(expected = RequestQueue.RequestQueueException.class)
     public void barfsWhenFull() throws IOException {
-        for (int i = 0; i <= RequestQueue.CAPACITY; i++) {
+        for (int i = 0; i <= CAPACITY; i++) {
             q.enqueue(TestDataFactory.generateRequest());
         }
     }

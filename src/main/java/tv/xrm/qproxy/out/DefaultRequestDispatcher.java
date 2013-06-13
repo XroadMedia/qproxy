@@ -1,9 +1,9 @@
 package tv.xrm.qproxy.out;
 
 
+import com.codahale.metrics.MetricRegistry;
 import com.ning.http.client.*;
 import com.ning.http.client.generators.InputStreamBodyGenerator;
-import com.codahale.metrics.MetricRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tv.xrm.qproxy.LifecyclePolicy;
@@ -26,8 +26,6 @@ import java.util.concurrent.Executors;
 public final class DefaultRequestDispatcher implements RequestDispatcher {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultRequestDispatcher.class);
 
-    private static final int NUM_THREADS = 3;
-
     private final AsyncHttpClient client = new AsyncHttpClient();
 
     private final com.codahale.metrics.Timer requestTimer;
@@ -36,9 +34,13 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
 
     private final LifecyclePolicy lifecyclePolicy;
 
-    public DefaultRequestDispatcher(final RequestQueue queue, final MetricRegistry metricRegistry, final LifecyclePolicy lifecyclePolicy) {
+    private final int threadCount;
+
+    public DefaultRequestDispatcher(final RequestQueue queue, final MetricRegistry metricRegistry, final LifecyclePolicy lifecyclePolicy,
+                                    final int threadCount) {
         this.q = Objects.requireNonNull(queue);
         this.lifecyclePolicy = lifecyclePolicy;
+        this.threadCount = threadCount;
 
         requestTimer = metricRegistry.timer(MetricRegistry.name(DefaultRequestDispatcher.class, queue.getQueueId(), "outgoing-requests"));
     }
@@ -46,8 +48,8 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
     @Override
     public void start() {
         LOG.debug("dispatcher starting up for queue {}", q);
-        ExecutorService service = Executors.newFixedThreadPool(NUM_THREADS);
-        for (int i = 0; i < NUM_THREADS; i++) {
+        ExecutorService service = Executors.newFixedThreadPool(threadCount);
+        for (int i = 0; i < threadCount; i++) {
             service.submit(new Dispatcher());
         }
     }

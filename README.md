@@ -28,8 +28,15 @@ Runtime metrics can be found at /metrics:
     curl -XGET 'http://localhost:8080/metrics'
 
 
-Limitations
------------
+Configuration
+-------------
+
+Various parameters are set through a configuration file. The default is part of the WAR, an alternative overriding file can be set through a system property, e.g.
+
+    java -Dqproxy.configFile=/etc/qproxy/myconfig.properties ...
+
+Limitations (and possible roadmap items)
+----------------------------------------
 
 This initial implementation does not give any delivery guarantees. A best effort is made to deliver messages exactly once, but they may also be lost or (unlikely, but possibly) delivered multiple times. Ordering is not guaranteed either, although it will tend to be _roughly_ first-in-first-out.
 
@@ -37,10 +44,5 @@ POST data are streamed to and from filesystem storage. This is meant to keep mem
 
 The internal message queue has a fixed size. This is inflexible but provides some form of back-pressure to the client.
 
-Each target URL (modulo any request parameters) is considered a logical queue, which is processed by a fixed number of concurrent HTTP client threads. This is probably unsuitable for use cases with many different and/or constantly changing target URLs.
-
-Short-term Roadmap
-------------------
-
-Many parameters are currently hardwired, and should be configurable instead.
+Each target URL (modulo any request parameters) is considered a logical queue, which is processed by a fixed number of concurrent HTTP client threads. This is unsuitable for use cases with many different and/or constantly changing target URLs.
 

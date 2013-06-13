@@ -1,7 +1,7 @@
 package tv.xrm.qproxy.in;
 
-import com.google.common.base.Strings;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tv.xrm.qproxy.QueueRegistry;
@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.Channels;
@@ -33,8 +34,11 @@ public class ProxyServlet extends HttpServlet {
 
     private final com.codahale.metrics.Timer requestTimer;
 
-    public ProxyServlet(final QueueRegistry queueRegistry, final MetricRegistry metricRegistry) {
+    private final String info;
+
+    public ProxyServlet(final QueueRegistry queueRegistry, final MetricRegistry metricRegistry, String info) {
         this.queueRegistry = queueRegistry;
+        this.info = info;
 
         requestTimer = metricRegistry.timer(name(ProxyServlet.class, "incoming-requests"));
     }
@@ -84,7 +88,12 @@ public class ProxyServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType("text/plain");
-        resp.getWriter().print("qproxy is up and running. Send POST requests to this path, add target URL as request parameter 'url'.");
+
+        PrintWriter out = resp.getWriter();
+
+        out.println("qproxy is up and running. Send POST requests to this path, add target URL as request parameter 'url'.");
+        out.println();
+        out.println(info);
     }
 
     private Map<String, Collection<String>> extractHeaders(final HttpServletRequest req) {

@@ -14,16 +14,14 @@ import java.util.concurrent.TimeUnit;
 import static com.codahale.metrics.MetricRegistry.name;
 
 public class RequestQueue {
-    public static final int CAPACITY = 2048;
-    private static final int ENQUEUING_TIMEOUT_MILLIS = 500;
-
     private static final Logger LOG = LoggerFactory.getLogger(RequestQueue.class);
 
     private final Timer delayTimer = new Timer("RequestQueue_delayTimer", true);
-    private final LinkedBlockingQueue<IdRetries> requestQueue = new LinkedBlockingQueue<>(CAPACITY);
+    private final LinkedBlockingQueue<IdRetries> requestQueue;
 
     private final String queueId;
     private final RequestStorage storage;
+    private final int enqueuingWaitMillis;
 
     private static final class IdRetries {
         final String id;
@@ -35,10 +33,14 @@ public class RequestQueue {
         }
     }
 
-    public RequestQueue(final String queueId, final RequestStorage storage, final MetricRegistry metricRegistry) {
-        LOG.debug("creating request queue {} with storage {}", queueId, storage);
+    public RequestQueue(final String queueId, final RequestStorage storage, final MetricRegistry metricRegistry,
+                        final int capacity,
+                        final int enqueuingWaitMillis) {
+        LOG.debug("creating request queue {} with storage {} and capacity {}", queueId, storage, capacity);
+        this.requestQueue = new LinkedBlockingQueue<>(capacity);
         this.queueId = queueId;
         this.storage = storage;
+        this.enqueuingWaitMillis = enqueuingWaitMillis;
 
         metricRegistry.register(name(RequestQueue.class, queueId, "queue-length"), new Gauge<Integer>() {
             @Override
@@ -62,7 +64,7 @@ public class RequestQueue {
 
     private void addToQueue(String id, int retries) {
         try {
-            if (!requestQueue.offer(new IdRetries(id, retries), ENQUEUING_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+            if (!requestQueue.offer(new IdRetries(id, retries), enqueuingWaitMillis, TimeUnit.MILLISECONDS)) {
                 throw new RequestQueueException("unable to enqueue " + id + ", giving up");
             }
 
