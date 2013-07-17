@@ -65,7 +65,7 @@
             <plugin>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-maven-plugin</artifactId>
-                <version>9.0.3.v20130506</version>
+                <version>9.0.4.v20130625</version>
                 <configuration>
                     <useTestScope>true</useTestScope>
                 </configuration>
@@ -82,7 +82,7 @@
         <dependency>
             <groupId>com.ning</groupId>
             <artifactId>async-http-client</artifactId>
-            <version>1.7.17</version>
+            <version>1.7.18</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -121,7 +121,7 @@
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock</artifactId>
-            <version>1.32</version>
+            <version>1.33</version>
             <scope>test</scope>
             <classifier>standalone</classifier>
         </dependency>
