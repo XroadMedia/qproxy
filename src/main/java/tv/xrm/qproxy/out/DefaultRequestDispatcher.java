@@ -2,8 +2,12 @@ package tv.xrm.qproxy.out;
 
 
 import com.codahale.metrics.MetricRegistry;
-import com.ning.http.client.*;
-import com.ning.http.client.generators.InputStreamBodyGenerator;
+import com.google.common.base.Joiner;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.api.ContentProvider;
+import org.eclipse.jetty.client.api.ContentResponse;
+import org.eclipse.jetty.client.api.Request;
+import org.eclipse.jetty.client.util.InputStreamContentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tv.xrm.qproxy.LifecyclePolicy;
@@ -13,11 +17,13 @@ import tv.xrm.qproxy.RequestQueue;
 import java.io.IOException;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.SeekableByteChannel;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
 
 
 /**
@@ -26,7 +32,9 @@ import java.util.concurrent.Executors;
 public final class DefaultRequestDispatcher implements RequestDispatcher {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultRequestDispatcher.class);
 
-    private final AsyncHttpClient client = new AsyncHttpClient();
+    private  static final Joiner COMMA_JOINER = Joiner.on(',');
+
+    private final HttpClient client = new HttpClient();
 
     private final com.codahale.metrics.Timer requestTimer;
 
@@ -48,6 +56,13 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
     @Override
     public void start() {
         LOG.debug("dispatcher starting up for queue {}", q);
+
+        try {
+            client.start();
+        } catch(Exception e) {
+            throw new IllegalStateException("failed to start HTTP client", e);
+        }
+
         ExecutorService service = Executors.newFixedThreadPool(threadCount);
         for (int i = 0; i < threadCount; i++) {
             service.submit(new Dispatcher());
@@ -95,34 +110,30 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
             final com.codahale.metrics.Timer.Context timerContext = requestTimer.time();
 
             try (ReadableByteChannel ch = req.getBodyStream()) {
-                final BodyGenerator bodyGenerator;
-                if (ch instanceof SeekableByteChannel) {
-                    bodyGenerator = new StreamingNonchunkingBodyGenerator((SeekableByteChannel) ch);
-                } else {
-                    bodyGenerator = new InputStreamBodyGenerator(Channels.newInputStream(ch));
+                final ContentProvider contentProvider = new InputStreamContentProvider(Channels.newInputStream(ch));
+
+                Request newRequest = client.POST(req.getUri()).content(contentProvider);
+
+                // map headers into jetty request (concatenating multi headers)
+                for(Map.Entry<String, Collection<String>> header : req.getHeaders().entrySet()) {
+                    newRequest = newRequest.header(header.getKey(), COMMA_JOINER.join(header.getValue()));
                 }
 
-                Request httpRequest = new RequestBuilder("POST")
-                        .setUrl(req.getUri().toString())
-                        .setHeaders(req.getHeaders())
-                        .setBody(bodyGenerator)
-                        .build();
-
                 try {
-                    Response result = client.executeRequest(httpRequest).get();
-                    final int status = result.getStatusCode();
+                    ContentResponse result = newRequest.send();
+                    final int status = result.getStatus();
 
                     if (lifecyclePolicy.isSuccessfullyDelivered(status)) {
-                        LOG.debug("req: {} response: {} {}", req, status, result.getStatusText());
+                        LOG.debug("req: {} response: {}", req, status);
                     } else {
-                        LOG.warn("req: {} response: {} {}", req, status, result.getStatusText());
+                        LOG.warn("req: {} response: {}", req, status);
                         if (lifecyclePolicy.shouldRetryOnStatus(status)) {
                             throw new IOException("service unavailable, retry later");
                         } else {
                             LOG.warn("giving up on request {}", req);
                         }
                     }
-                } catch (ExecutionException e) {
+                } catch (ExecutionException | TimeoutException e) {
                     throw new IOException(e);
                 }
             } finally {

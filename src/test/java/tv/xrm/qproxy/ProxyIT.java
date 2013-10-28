@@ -2,8 +2,9 @@ package tv.xrm.qproxy;
 
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
-import com.ning.http.client.AsyncHttpClient;
-import com.ning.http.client.Response;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.api.ContentResponse;
+import org.eclipse.jetty.client.util.StringContentProvider;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -21,7 +22,14 @@ public class ProxyIT {
     private static final int PROXY_SERVER_PORT = 8080;
     public static final String PROXY_SERVER_BASE_URL = "http://localhost:" + PROXY_SERVER_PORT + "/";
 
-    private final AsyncHttpClient client = new AsyncHttpClient();
+    private final HttpClient client = new HttpClient();
+    {
+        try {
+            client.start();
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
 
     @ClassRule
     public static WireMockRule wireMockRule = new WireMockRule(MOCK_SERVER_PORT);
@@ -30,14 +38,13 @@ public class ProxyIT {
     public void forwardsSimplePost() throws Exception {
         final String body = "\"El veloz murciélago hindú comía feliz cardillo y kiwi. La cigüeña tocaba el saxofón detrás del palenque de paja.\"";
 
-        Response response = client.preparePost(PROXY_SERVER_BASE_URL)
-                .addQueryParameter("url", MOCK_SERVER_BASE_URL + "boo")
-                .setBody(body)
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Foo-Header", "foo")
-                .execute().get();
+        ContentResponse response = client.POST(PROXY_SERVER_BASE_URL).param("url", MOCK_SERVER_BASE_URL + "boo")
+                .content(new StringContentProvider(body))
+                .header("Content-Type", "application/json; charset=UTF-8")
+                .header("Foo-Header", "foo")
+                .send();
 
-        assertEquals(202, response.getStatusCode());
+        assertEquals(202, response.getStatus());
 
         Thread.sleep(500);
 
@@ -65,19 +72,19 @@ public class ProxyIT {
                 .whenScenarioStateIs("retryN")
                 .willReturn(aResponse().withStatus(208)));
 
-        Response response = client.preparePost(PROXY_SERVER_BASE_URL)
-                .addQueryParameter("url", MOCK_SERVER_BASE_URL)
-                .setBody(body)
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Foo-Header", "foo")
-                .execute().get();
+        ContentResponse response = client.POST(PROXY_SERVER_BASE_URL)
+                .param("url", MOCK_SERVER_BASE_URL)
+                .content(new StringContentProvider(body))
+                .header("Content-Type", "application/json; charset=UTF-8")
+                .header("Foo-Header", "foo")
+                .send();
 
-        assertEquals(202, response.getStatusCode());
+        assertEquals(202, response.getStatus());
 
         Thread.sleep(5000);
 
         // there seems to be no way to ask WireMock directly for the current state of a scenario, so do this:
-        assertEquals(208, client.preparePost(MOCK_SERVER_BASE_URL).execute().get().getStatusCode());
+        assertEquals(208, client.POST(MOCK_SERVER_BASE_URL).send().getStatus());
     }
 
 
@@ -85,23 +92,23 @@ public class ProxyIT {
     public void rejectsMalformedUri() throws Exception {
         final String body = "\"El veloz murciélago hindú comía feliz cardillo y kiwi.\"";
 
-        Response response = client.preparePost(PROXY_SERVER_BASE_URL)
-                .addQueryParameter("url", MOCK_SERVER_BASE_URL.replace('/', '\\'))
-                .setBody(body)
-                .execute().get();
+        ContentResponse response = client.POST(PROXY_SERVER_BASE_URL)
+                .param("url", MOCK_SERVER_BASE_URL.replace('/', '\\'))
+                .content(new StringContentProvider(body))
+                .send();
 
-        assertEquals(400, response.getStatusCode());
+        assertEquals(400, response.getStatus());
     }
 
     @Test
     public void rejectsMissingUri() throws Exception {
         final String body = "\"boo\"";
 
-        Response response = client.preparePost("http://localhost:" + PROXY_SERVER_PORT + "/")
-                .setBody(body)
-                .execute().get();
+        ContentResponse response = client.POST("http://localhost:" + PROXY_SERVER_PORT + "/")
+                .content(new StringContentProvider(body))
+                .send();
 
-        assertEquals(400, response.getStatusCode());
+        assertEquals(400, response.getStatus());
     }
 
 }
