@@ -7,7 +7,6 @@ import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentProvider;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
-import org.eclipse.jetty.client.util.InputStreamContentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tv.xrm.qproxy.LifecyclePolicy;
@@ -15,7 +14,6 @@ import tv.xrm.qproxy.RequestDispatcher;
 import tv.xrm.qproxy.RequestQueue;
 
 import java.io.IOException;
-import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.Collection;
 import java.util.Map;
@@ -32,7 +30,7 @@ import java.util.concurrent.TimeoutException;
 public final class DefaultRequestDispatcher implements RequestDispatcher {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultRequestDispatcher.class);
 
-    private  static final Joiner COMMA_JOINER = Joiner.on(',');
+    private static final Joiner COMMA_JOINER = Joiner.on(',');
 
     private final HttpClient client = new HttpClient();
 
@@ -59,7 +57,7 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
 
         try {
             client.start();
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new IllegalStateException("failed to start HTTP client", e);
         }
 
@@ -74,7 +72,7 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
         public void run() {
 
             try {
-                while (true) {
+                while (!Thread.currentThread().isInterrupted()) {
                     tv.xrm.qproxy.Request req;
 
                     try {
@@ -110,12 +108,12 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
             final com.codahale.metrics.Timer.Context timerContext = requestTimer.time();
 
             try (ReadableByteChannel ch = req.getBodyStream()) {
-                final ContentProvider contentProvider = new InputStreamContentProvider(Channels.newInputStream(ch));
+                final ContentProvider contentProvider = new FixedSizeChannelProvider(ch);
 
                 Request newRequest = client.POST(req.getUri()).content(contentProvider);
 
                 // map headers into jetty request (concatenating multi headers)
-                for(Map.Entry<String, Collection<String>> header : req.getHeaders().entrySet()) {
+                for (Map.Entry<String, Collection<String>> header : req.getHeaders().entrySet()) {
                     newRequest = newRequest.header(header.getKey(), COMMA_JOINER.join(header.getValue()));
                 }
 
@@ -126,7 +124,7 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
                     if (lifecyclePolicy.isSuccessfullyDelivered(status)) {
                         LOG.debug("req: {} response: {}", req, status);
                     } else {
-                        LOG.warn("req: {} response: {}", req, status);
+                        LOG.warn("req: {} response: {} body: '{}'", req, status, result.getContentAsString());
                         if (lifecyclePolicy.shouldRetryOnStatus(status)) {
                             throw new IOException("service unavailable, retry later");
                         } else {

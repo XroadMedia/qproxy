@@ -5,6 +5,8 @@ import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.util.StringContentProvider;
+import org.eclipse.jetty.http.HttpField;
+import org.eclipse.jetty.http.HttpHeader;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -25,6 +27,7 @@ public class ProxyIT {
     private final HttpClient client = new HttpClient();
     {
         try {
+            client.setUserAgentField(new HttpField(HttpHeader.USER_AGENT, "integration test client"));
             client.start();
         } catch (Exception e) {
             throw new IllegalStateException(e);
