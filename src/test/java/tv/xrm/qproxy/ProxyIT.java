@@ -86,6 +86,8 @@ public class ProxyIT {
 
         Thread.sleep(5000);
 
+        verify(2, postRequestedFor(urlMatching("/")).withHeader("Foo-Header", equalTo("foo")).withRequestBody(equalTo(body)));
+
         // there seems to be no way to ask WireMock directly for the current state of a scenario, so do this:
         assertEquals(208, client.POST(MOCK_SERVER_BASE_URL).send().getStatus());
     }
