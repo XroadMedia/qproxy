@@ -35,9 +35,9 @@ Various parameters are set through a configuration file. The default is part of 
 
     java -Dqproxy.configFile=/etc/qproxy/myconfig.properties ...
 
-### Mapping target URIs to queues
+### Mapping target URLs to queues
 
-By default, each combination of the same protocol, host, port and the first path element are handled by the same queue. That is, http://foo:80/bar/bla and http://foo:80/bar/zap will be managed by one single queue. This behaviour can be controlled with the pathAggregationLevels configuration parameter.
+By default, each combination of the same protocol, host, port and the first path element (if any) are handled by the same queue. That is, http://foo:80/bar/bla and http://foo:80/bar/zap will be managed by one single queue. This behaviour can be controlled with the pathAggregationLevels configuration parameter.
 
 Query parameters are never considered for this mapping.
 
@@ -46,9 +46,9 @@ Limitations (and possible roadmap items)
 
 This initial implementation does not give any delivery guarantees. A best effort is made to deliver messages exactly once, but they may also be lost or (unlikely, but possibly) delivered multiple times. Ordering is not guaranteed either, although it will tend to be _roughly_ first-in-first-out.
 
-POST data are streamed to and from filesystem storage. This is meant to keep memory usage to a minimum even for large payloads, but may not result in the best throughput.
+POST data are streamed to and from filesystem storage. This is meant to keep memory usage to a minimum even for large payloads, but may not result in the best throughput. It also eats up open file descriptors, so you may have to increase the limits for those.
 
-The internal message queue has a fixed size. This is inflexible but provides some form of back-pressure to the client.
+The internal message queues have a fixed size. This is inflexible but provides some form of back-pressure to the client.
 
 Each queue is processed by a fixed number of concurrent HTTP client threads, and queues are never pruned. This is unsuitable for use cases with many different and/or constantly changing target URLs.
 
