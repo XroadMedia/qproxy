@@ -1,5 +1,9 @@
 package tv.xrm.qproxy;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Iterables;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,9 +16,11 @@ public class QueueRegistry {
 
     private final ConcurrentMap<String, RequestQueue> map = new ConcurrentHashMap<>();
     private final RequestQueueAndDispatcherFactory factory;
+    private final int levels;
 
-    public QueueRegistry(RequestQueueAndDispatcherFactory factory) {
+    public QueueRegistry(RequestQueueAndDispatcherFactory factory, int levels) {
         this.factory = factory;
+        this.levels = levels;
     }
 
     public interface RequestQueueAndDispatcherFactory {
@@ -24,12 +30,7 @@ public class QueueRegistry {
     }
 
     public RequestQueue getQueue(final URI uri) {
-        String cutUri;
-        try {
-            cutUri = new URI(uri.getScheme(), uri.getAuthority(), uri.getPath(), null, null).toString();
-        } catch (URISyntaxException e) {
-            cutUri = uri.toString();
-        }
+        final String cutUri = aggregateUri(uri);
 
         RequestQueue q = map.get(cutUri);
         if (q == null) {
@@ -44,6 +45,26 @@ public class QueueRegistry {
             }
         }
         return q;
+    }
+
+    String aggregateUri(final URI uri) {
+        String cutUri;
+        try {
+            String path = uri.getPath();
+
+            if (levels > 0) {
+                Iterable<String> split = Iterables.limit(Splitter.on('/').omitEmptyStrings().split(path), levels);
+                path = "/" + Joiner.on('/').join(split);
+            } else if (levels == 0) {
+                path = "/";
+            }
+
+            cutUri = new URI(uri.getScheme(), uri.getAuthority(), path, null, null).toString();
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException("unable to create URI from " + uri);
+        }
+
+        return cutUri;
     }
 
 }
