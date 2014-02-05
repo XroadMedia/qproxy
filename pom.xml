@@ -14,7 +14,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>1.7.5</slf4j.version>
-        <jetty.version>9.0.7.v20131107</jetty.version>
+        <jetty.version>9.1.1.v20140108</jetty.version>
     </properties>
 
     <prerequisites>
@@ -122,7 +122,7 @@
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock</artifactId>
-            <version>1.36</version>
+            <version>1.41</version>
             <scope>test</scope>
             <classifier>standalone</classifier>
         </dependency>

@@ -51,6 +51,7 @@ public class Setup implements ServletContextListener {
         final int queueCapacity = (int) config.key("queueCapacity").asLong();
         final int posterThreadCount = (int) config.key("posterThreadCount").asLong();
         final int enqueuingWaitMillis = (int) config.key("enqueuingWaitMillis").asLong();
+        final int pathAggregationLevels = (int) config.key("pathAggregationLevels").asLong();
 
         final QueueRegistry qReg = new QueueRegistry(new QueueRegistry.RequestQueueAndDispatcherFactory() {
             @Override
@@ -62,7 +63,7 @@ public class Setup implements ServletContextListener {
             public RequestDispatcher getDispatcher(final RequestQueue queue) {
                 return new DefaultRequestDispatcher(queue, metricRegistry, lifecyclePolicy, posterThreadCount);
             }
-        });
+        }, pathAggregationLevels);
 
         final ServletContext sc = sce.getServletContext();
         sc.setAttribute(MetricsServlet.METRICS_REGISTRY, metricRegistry);
