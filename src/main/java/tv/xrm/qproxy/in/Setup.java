@@ -1,6 +1,5 @@
 package tv.xrm.qproxy.in;
 
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.servlets.MetricsServlet;
 import net.e175.klaus.config.Config;
@@ -43,15 +42,15 @@ public class Setup implements ServletContextListener {
 
         final MetricRegistry metricRegistry = new MetricRegistry();
 
-        final LifecyclePolicy lifecyclePolicy = new DefaultLifecyclePolicy(
-                (int) config.key("maxRetries").asLong(),
-                (int) config.key("retryDelayBaseSeconds").asLong(),
-                (int) config.key("maxRequestAgeSeconds").asLong());
+        final LifecyclePolicy lifecyclePolicy = new DefaultLifecyclePolicy((int) config.key("maxRetries").asLong(),
+                (int) config.key("retryDelayBaseSeconds").asLong(), (int) config.key("maxRequestAgeSeconds").asLong());
 
         final int queueCapacity = (int) config.key("queueCapacity").asLong();
         final int posterThreadCount = (int) config.key("posterThreadCount").asLong();
         final int enqueuingWaitMillis = (int) config.key("enqueuingWaitMillis").asLong();
         final int pathAggregationLevels = (int) config.key("pathAggregationLevels").asLong();
+        final int maxContentLengthBytes = (int) config.key("maxContentLengthBytes").asLong();
+        final int timeoutMillis = (int) config.key("timeoutMillis").asLong();
 
         final QueueRegistry qReg = new QueueRegistry(new QueueRegistry.RequestQueueAndDispatcherFactory() {
             @Override
@@ -61,7 +60,8 @@ public class Setup implements ServletContextListener {
 
             @Override
             public RequestDispatcher getDispatcher(final RequestQueue queue) {
-                return new DefaultRequestDispatcher(queue, metricRegistry, lifecyclePolicy, posterThreadCount);
+                return new DefaultRequestDispatcher(queue, metricRegistry, lifecyclePolicy, posterThreadCount,
+                        maxContentLengthBytes, timeoutMillis);
             }
         }, pathAggregationLevels);
 
