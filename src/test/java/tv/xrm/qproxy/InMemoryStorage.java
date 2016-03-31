@@ -11,10 +11,13 @@ final class InMemoryStorage implements RequestStorage {
     private int idCounter = 0;
 
     @Override
-    public String store(Request request) throws IOException {
-        final String id = Integer.toString(idCounter++);
+    public String createRequestId() {
+        return Integer.toString(idCounter++);
+    }
+
+    @Override
+    public void store(Request request, String id) throws IOException {
         requestMap.put(id, Request.withId(request, id));
-        return id;
     }
 
     @Override
