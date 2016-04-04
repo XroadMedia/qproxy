@@ -13,7 +13,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.*;
-import java.security.SecureRandom;
 import java.util.*;
 
 public class FileStorage implements RequestStorage {
@@ -41,39 +40,27 @@ public class FileStorage implements RequestStorage {
         this.baseDir = baseDir;
     }
 
-    private static final SecureRandom random = new SecureRandom();
-
     @Override
-    public String createRequestId() {
-        final String timestamp = Long.toString(System.currentTimeMillis());
-        long n = random.nextLong();
-        n = (n == Long.MIN_VALUE) ? 0 : Math.abs(n);
-        return timestamp + Long.toString(n) + SUFFIX;
-    }
-
-    @Override
-    public void store(Request request, String id) throws IOException {
-        Path target = Files.createFile(getPathForId(id));
+    public String store(Request request) throws IOException {
+        Path target = Files.createTempFile(baseDir, Long.toString(System.currentTimeMillis()), SUFFIX);
+        String id = target.getFileName().toString();
 
         try (ReadableByteChannel inChannel = request.getBodyStream();
-                FileChannel targetChannel = FileChannel.open(target, StandardOpenOption.WRITE)) {
+             FileChannel targetChannel = FileChannel.open(target, StandardOpenOption.WRITE)) {
 
-            writeStorageBlock(new StorageBlock(request.getUri(), request.getHeaders(), request.getReceivedTimestamp()),
-                    targetChannel);
+            writeStorageBlock(new StorageBlock(request.getUri(), request.getHeaders(), request.getReceivedTimestamp()), targetChannel);
             targetChannel.transferFrom(inChannel, targetChannel.position(), Integer.MAX_VALUE);
         } catch (IOException | RuntimeException e) {
             Files.delete(target);
             throw e;
         }
-    }
 
-    private Path getPathForId(String id) {
-        return baseDir.getFileSystem().getPath(Objects.requireNonNull(id));
+        return id;
     }
 
     @Override
     public Request retrieve(final String id) throws IOException {
-        final Path source = getPathForId(id);
+        final Path source = baseDir.resolve(Objects.requireNonNull(id));
 
         FileChannel sourceChannel = null;
         try {
@@ -119,7 +106,7 @@ public class FileStorage implements RequestStorage {
         }
 
         try {
-            final Path source = getPathForId(id);
+            final Path source = baseDir.resolve(id);
             Files.delete(source);
         } catch (InvalidPathException | IOException e) {
             LOG.warn("unable to delete {}", id, e);
@@ -140,8 +127,7 @@ public class FileStorage implements RequestStorage {
         try {
             int length = readLength(sourceChannel);
             if (length > MAX_STORAGE_BLOCK_SIZE) {
-                throw new IOException(
-                        "storage block size is greater than " + MAX_STORAGE_BLOCK_SIZE + ", file corrupt?");
+                throw new IOException("storage block size is greater than " + MAX_STORAGE_BLOCK_SIZE + ", file corrupt?");
             }
             ByteBuffer buffer = ByteBuffer.allocate(length);
             sourceChannel.read(buffer);
@@ -180,8 +166,8 @@ public class FileStorage implements RequestStorage {
 
         @JsonCreator
         public StorageBlock(@JsonProperty("uri") URI uri,
-                @JsonProperty("headers") Map<String, Collection<String>> headers,
-                @JsonProperty("receivedTimestamp") long receivedTimestamp) {
+                            @JsonProperty("headers") Map<String, Collection<String>> headers,
+                            @JsonProperty("receivedTimestamp") long receivedTimestamp) {
             this.uri = uri;
             this.headers = headers;
             this.receivedTimestamp = receivedTimestamp;

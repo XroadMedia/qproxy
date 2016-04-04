@@ -5,12 +5,10 @@ import java.util.List;
 
 public interface RequestStorage {
 
-    String createRequestId();
-
     /**
      * Store the given request, returning a unique ID.
      */
-    void store(Request request, String id) throws IOException;
+    String store(Request request) throws IOException;
 
     /**
      * Retrieve the request identified by ID.

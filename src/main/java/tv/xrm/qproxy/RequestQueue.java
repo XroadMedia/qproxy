@@ -51,10 +51,10 @@ public class RequestQueue {
     }
 
     public Request enqueue(final Request req) {
-        String id = storage.createRequestId();
+        String id = null;
         try {
+            id = storage.store(req);
             addToQueue(id, req.getRetryCount());
-            storage.store(req, id);
             return Request.withId(req, id);
         } catch (IOException e) {
             storage.delete(id);

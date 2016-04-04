@@ -99,15 +99,12 @@ public final class DefaultRequestDispatcher implements RequestDispatcher {
                             q.requeue(tv.xrm.qproxy.Request.withRetries(req, req.getRetryCount() + 1), retry);
                         } else {
                             LOG.warn("giving up on request {}", req);
-                            q.cleanup(req.getId());
                         }
                     }
                 }
             } catch (InterruptedException ignored) {
                 // just return, but set interrupted status (app probably shutting down)
                 Thread.currentThread().interrupt();
-            } finally {
-                LOG.info("Request dispatcher of qproxy stopped");
             }
         }
 

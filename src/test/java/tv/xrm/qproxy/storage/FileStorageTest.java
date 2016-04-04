@@ -53,8 +53,7 @@ public class FileStorageTest {
     @Test
     public void canStoreWithoutComplaint() throws Exception {
         Request r = TestDataFactory.generateRequest();
-        storage.store(r, r.getId());
-        storage.delete(r.getId());
+        assertNotNull(storage.store(r));
     }
 
     @Test
@@ -63,17 +62,14 @@ public class FileStorageTest {
         final Map<String, Collection<String>> headers = TestDataFactory.generateHeaders();
         final String data = "Съешь ещё этих мягких французских булок, да выпей же чаю";
 
-        final Request r = new Request(uri, headers, TestDataFactory.channelFromString(data), null, 0,
-                System.currentTimeMillis());
-        String id = storage.createRequestId();
-        storage.store(r, id);
+        final Request r = new Request(uri, headers, TestDataFactory.channelFromString(data), null, 0, System.currentTimeMillis());
+        String id = storage.store(r);
 
         try (final Request retrievedRequest = storage.retrieve(id)) {
             assertEquals(id, retrievedRequest.getId());
             assertEquals(r.getHeaders(), retrievedRequest.getHeaders());
             assertEquals(data, TestDataFactory.stringFromChannel(retrievedRequest.getBodyStream()));
         }
-        storage.delete(id);
     }
 
     @Test(expected = IOException.class)
@@ -89,12 +85,13 @@ public class FileStorageTest {
         Files.write(corrupted2, "gibberish, this won't work".getBytes());
 
         Path corrupted3 = Files.createFile(tempFolder.resolve("corruptedFile3" + FileStorage.SUFFIX));
-        Files.write(corrupted3, new byte[] { 0, 0, 0, 127, 1, 2, 3, 4, 5, 6, 7 });
+        Files.write(corrupted3, new byte[]{0, 0, 0, 127, 1, 2, 3, 4, 5, 6, 7});
 
         List<Request> reqs = storage.retrieve();
 
         assertNotNull(reqs);
         assertTrue(reqs.isEmpty());
     }
+
 
 }
