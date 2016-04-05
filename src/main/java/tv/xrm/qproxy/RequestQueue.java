@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import static com.codahale.metrics.MetricRegistry.name;
 
@@ -21,7 +20,6 @@ public class RequestQueue {
 
     private final String queueId;
     private final RequestStorage storage;
-    private final int enqueuingWaitMillis;
 
     private static final class IdRetries {
         final String id;
@@ -34,13 +32,11 @@ public class RequestQueue {
     }
 
     public RequestQueue(final String queueId, final RequestStorage storage, final MetricRegistry metricRegistry,
-                        final int capacity,
-                        final int enqueuingWaitMillis) {
+            final int capacity) {
         LOG.debug("creating request queue {} with storage {} and capacity {}", queueId, storage, capacity);
         this.requestQueue = new LinkedBlockingQueue<>(capacity);
         this.queueId = queueId;
         this.storage = storage;
-        this.enqueuingWaitMillis = enqueuingWaitMillis;
 
         metricRegistry.register(name(RequestQueue.class, queueId, "queue-length"), new Gauge<Integer>() {
             @Override
@@ -53,24 +49,18 @@ public class RequestQueue {
     public Request enqueue(final Request req) {
         String id = null;
         try {
+            if (requestQueue.remainingCapacity() == 0) {
+                throw new RequestQueueException("unable to enqueue " + id);
+            }
             id = storage.store(req);
-            addToQueue(id, req.getRetryCount());
+            if (!requestQueue.offer(new IdRetries(id, req.getRetryCount()))) {
+                storage.delete(id);
+                throw new RequestQueueException("unable to enqueue " + id);
+            }
             return Request.withId(req, id);
         } catch (IOException e) {
             storage.delete(id);
             throw new RequestQueueException("unable to enqueue request " + req, e);
-        }
-    }
-
-    private void addToQueue(String id, int retries) {
-        try {
-            if (!requestQueue.offer(new IdRetries(id, retries), enqueuingWaitMillis, TimeUnit.MILLISECONDS)) {
-                throw new RequestQueueException("unable to enqueue " + id + ", giving up");
-            }
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RequestQueueException("interrupted trying to enqueue " + id + ", giving up", e);
         }
     }
 
@@ -85,17 +75,21 @@ public class RequestQueue {
     }
 
     public void requeue(final Request req, final long delayMillis) {
+        final TimerTask requeueTask = new TimerTask() {
+            @Override
+            public void run() {
+                if (!requestQueue.offer(new IdRetries(req.getId(), req.getRetryCount()))) {
+                    LOG.warn("failed to requeue request " + req);
+                    storage.delete(req.getId());
+                }
+            }
+        };
         if (delayMillis > 0) {
             LOG.trace("scheduling retry for {} in >={} ms", req, delayMillis);
-            delayTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    addToQueue(req.getId(), req.getRetryCount());
-                }
-            }, delayMillis);
+            delayTimer.schedule(requeueTask, delayMillis);
         } else {
             LOG.trace("scheduling retry for {} without delay", req, delayMillis);
-            addToQueue(req.getId(), req.getRetryCount());
+            requeueTask.run();
         }
     }
 

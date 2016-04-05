@@ -18,7 +18,7 @@ public class RequestQueueTest {
     public void setup() {
         MetricRegistry metricRegistryMock = mock(MetricRegistry.class);
         RequestStorage requestStorage = new InMemoryStorage();
-        q = new RequestQueue("test", requestStorage, metricRegistryMock, CAPACITY, 300);
+        q = new RequestQueue("test", requestStorage, metricRegistryMock, CAPACITY);
     }
 
     @Test

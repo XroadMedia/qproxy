@@ -47,7 +47,6 @@ public class Setup implements ServletContextListener {
 
         final int queueCapacity = (int) config.key("queueCapacity").asLong();
         final int posterThreadCount = (int) config.key("posterThreadCount").asLong();
-        final int enqueuingWaitMillis = (int) config.key("enqueuingWaitMillis").asLong();
         final int pathAggregationLevels = (int) config.key("pathAggregationLevels").asLong();
         final int maxContentLengthBytes = (int) config.key("maxContentLengthBytes").asLong();
         final int timeoutMillis = (int) config.key("timeoutMillis").asLong();
@@ -55,7 +54,7 @@ public class Setup implements ServletContextListener {
         final QueueRegistry qReg = new QueueRegistry(new QueueRegistry.RequestQueueAndDispatcherFactory() {
             @Override
             public RequestQueue getQueue(final String id) {
-                return new RequestQueue(id, storage, metricRegistry, queueCapacity, enqueuingWaitMillis);
+                return new RequestQueue(id, storage, metricRegistry, queueCapacity);
             }
 
             @Override
