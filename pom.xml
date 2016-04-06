@@ -3,7 +3,7 @@
     <groupId>tv.xrm</groupId>
     <artifactId>qproxy</artifactId>
     <packaging>war</packaging>
-    <version>0.0.8-SNAPSHOT</version>
+    <version>0.0.8</version>
 
     <name>qproxy</name>
 
