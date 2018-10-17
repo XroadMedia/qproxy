@@ -9,7 +9,7 @@ qproxy is implemented as a Java servlet, so it needs a servlet container to run 
 Build / Usage
 -------------
 
-You'll need at least Java SE 7, and additionally Maven 3 for building:
+You'll need at least Java SE 8, and additionally Maven 3 for building:
 
     mvn clean package
 

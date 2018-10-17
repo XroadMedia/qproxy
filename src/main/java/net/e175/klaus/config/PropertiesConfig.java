@@ -33,7 +33,7 @@ public final class PropertiesConfig implements Config {
 			throw new IllegalArgumentException("locations must not be null");
 		}
 
-		locationProperties = new LinkedHashMap<Location, Properties>(locations.size());
+		locationProperties = new LinkedHashMap<>(locations.size());
 		load(locations);
 		creationTimeMillis = System.currentTimeMillis();
 	}

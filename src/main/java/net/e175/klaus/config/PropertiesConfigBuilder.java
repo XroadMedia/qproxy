@@ -16,7 +16,7 @@ import net.e175.klaus.config.PropertiesConfig.Filesystem;
  */
 public final class PropertiesConfigBuilder implements ConfigBuilder {
 
-	private final List<Location> locations = new LinkedList<Location>();
+	private final List<Location> locations = new LinkedList<>();
 
 	private PropertiesConfigBuilder() {
 	}

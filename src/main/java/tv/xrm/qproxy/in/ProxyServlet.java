@@ -26,7 +26,7 @@ import static com.codahale.metrics.MetricRegistry.name;
  * Main servlet that accepts POST requests and puts them on a queue.
  */
 public class ProxyServlet extends HttpServlet {
-    private static final long serialVersionUID = 1l;
+    private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(ProxyServlet.class);
 

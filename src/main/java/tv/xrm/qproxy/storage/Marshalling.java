@@ -18,7 +18,7 @@ final class Marshalling {
     public Marshalling() {
         ObjectMapper mapper = new ObjectMapper();
         writer = mapper.writer();
-        reader = mapper.reader(TYPE_REFERENCE);
+        reader = mapper.readerFor(TYPE_REFERENCE);
     }
 
     public byte[] marshal(final FileStorage.StorageBlock o) throws JsonProcessingException {
