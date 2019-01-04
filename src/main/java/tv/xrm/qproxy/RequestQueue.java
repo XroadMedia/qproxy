@@ -38,12 +38,7 @@ public class RequestQueue {
         this.queueId = queueId;
         this.storage = storage;
 
-        metricRegistry.register(name(RequestQueue.class, queueId, "queue-length"), new Gauge<Integer>() {
-            @Override
-            public Integer getValue() {
-                return requestQueue.size();
-            }
-        });
+        metricRegistry.register(name(RequestQueue.class, queueId, "queue-length"), (Gauge<Integer>) () -> requestQueue.size());
     }
 
     public Request enqueue(final Request req) {
