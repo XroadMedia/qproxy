@@ -1,6 +1,8 @@
 package net.e175.klaus.config;
 
 
+import java.util.NoSuchElementException;
+
 /**
  * An interface for a class that holds values read from config,
  * even nonexistent ones (similar to a Null Object).

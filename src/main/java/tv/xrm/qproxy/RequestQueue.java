@@ -38,23 +38,21 @@ public class RequestQueue {
         this.queueId = queueId;
         this.storage = storage;
 
-        metricRegistry.register(name(RequestQueue.class, queueId, "queue-length"), (Gauge<Integer>) () -> requestQueue.size());
+        metricRegistry.register(name(RequestQueue.class, queueId, "queue-length"), (Gauge<Integer>) requestQueue::size);
     }
 
     public Request enqueue(final Request req) {
-        String id = null;
         try {
             if (requestQueue.remainingCapacity() == 0) {
-                throw new RequestQueueException("unable to enqueue " + id);
+                throw new RequestQueueException("no capacity; unable to enqueue " + req);
             }
-            id = storage.store(req);
+            String id = storage.store(req);
             if (!requestQueue.offer(new IdRetries(id, req.getRetryCount()))) {
                 storage.delete(id);
-                throw new RequestQueueException("unable to enqueue " + id);
+                throw new RequestQueueException("unable to enqueue " + req);
             }
             return Request.withId(req, id);
         } catch (IOException e) {
-            storage.delete(id);
             throw new RequestQueueException("unable to enqueue request " + req, e);
         }
     }
@@ -83,7 +81,7 @@ public class RequestQueue {
             LOG.trace("scheduling retry for {} in >={} ms", req, delayMillis);
             delayTimer.schedule(requeueTask, delayMillis);
         } else {
-            LOG.trace("scheduling retry for {} without delay", req, delayMillis);
+            LOG.trace("scheduling retry for {} without delay", req);
             requeueTask.run();
         }
     }

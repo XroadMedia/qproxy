@@ -41,7 +41,7 @@ public final class Value implements ConfigValue {
 
 	/** {@inheritDoc} */
 	public double asDouble() {
-		return Double.valueOf(asString());
+		return Double.parseDouble(asString());
 	}
 
 	/** {@inheritDoc} */
@@ -51,7 +51,7 @@ public final class Value implements ConfigValue {
 
 	/** {@inheritDoc} */
 	public long asLong() {
-		return Long.valueOf(asString());
+		return Long.parseLong(asString());
 	}
 
 	/** {@inheritDoc} */
